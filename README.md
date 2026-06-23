@@ -623,7 +623,31 @@ ZLIB_MIRROR_URLS="https://z-library.sk https://z-lib.fm https://1lib.sk https://
 | **中文** | ❌ | ✅ **双语界面**（English / 简体中文） |
 | **许可证** | AGPL-3.0 | GPL-3.0 |
 
-### 9.2 EurFelux/marginalia TTS 原理
+### 9.2 安装过程 (macOS)
+
+**方式一: Homebrew（推荐）**
+```bash
+brew tap eurfelux/tap
+brew trust eurfelux/tap          # 首次需信任非官方 tap
+brew install --cask marginalia
+```
+
+**方式二: 手动下载**
+从 [GitHub Releases](https://github.com/EurFelux/marginalia/releases) 下载最新的 `.dmg`，打开后将 marginalia 拖入 Applications。
+
+首次启动 macOS 会提示"无法验证开发者"——因 ad-hoc 签名未经过 Apple 公证。解决方法：
+- 系统设置 → 隐私与安全性 → 仍要打开
+- 或终端执行: `xattr -d com.apple.quarantine /Applications/marginalia.app`
+
+安装验证:
+```bash
+ls /Applications/marginalia.app
+# → 应显示 Contents 目录
+```
+
+**注意**: 本项目基于 Electron，**目前只有 macOS 桌面版**。从 `forge.config.ts` 可见打包目标仅包含 `darwin-arm64` 和 `darwin-x64`，无 iOS/Android 版本。
+
+### 9.3 EurFelux/marginalia TTS 原理
 
 - **驱动**: Web Speech API（`window.speechSynthesis`）
 - **跨平台**: macOS (NSSpeechSynthesizer) / Windows (SAPI5) / Linux (speech-dispatcher)
