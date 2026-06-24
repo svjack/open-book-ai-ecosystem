@@ -1196,6 +1196,8 @@ curl -L -o 构建Agentic_AI系统.pdf \
 - **vreader** (`lllyys/vreader`) ⭐17 — iOS/iPadOS AI EPUB 阅读器（AI 对话、双语翻译、TTS、WebDAV）
 - **Empty** (`DaviRain-Su/empty`) ⭐11 — macOS + iOS/iPadOS 防剧透 AI 伴读（端侧 AI / BYOK）
   - 本地构建 & 真机安装实战记录: **[svjack/empty-builder-guide](https://github.com/svjack/empty-builder-guide)**
+- **vRain** (`shanleiguang/vRain`) — 中文古籍刻本风格直排 PDF 生成工具
+  - 安装/配置/标记系统指南: **[svjack/vRain-guide](https://github.com/svjack/vRain-guide)**
 
 
 
