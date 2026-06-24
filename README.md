@@ -15,8 +15,10 @@
 6. [Anna's Archive 深度分析](#6-annas-archive-深度分析)
 7. [Anna's Archive 藏书验证](#7-annas-archive-藏书验证)
 8. [绕过 DDoS-Guard 的下载方案](#8-绕过-ddos-guard-的下载方案)
-9. [AI EPUB 阅读器对比](#9-ai-epub-阅读器对比)
-10. [实际下载验证](#10-实际下载验证)
+9.  [AI EPUB 阅读器对比](#9-ai-epub-阅读器对比)
+    9.4 [iOS/iPadOS 开源 AI EPUB 阅读器](#94-iosipados-开源-ai-epub-阅读器)
+    9.5 [Apple Intelligence 端侧 AI 架构与限制](#95-apple-intelligence-端侧-ai-架构与限制)
+10.  [实际下载验证](#10-实际下载验证)
 11. [总结与推荐](#11-总结与推荐)
 
 ---
@@ -664,6 +666,145 @@ ls /Applications/marginalia.app
 | 自定义 API Key | **EurFelux/marginalia**（任意 OpenAI 兼容端点） |
 | 多平台（非 macOS） | **eddmann/Marginalia**（macOS + Linux）或 Koodo Reader |
 | 纯阅读 + 批量管理 | **Calibre + cal-annas**（最成熟） |
+| **iOS/iPadOS 原生 AI 阅读** | **vreader** 或 **Empty**（见 9.4） |
+
+---
+
+## 9.4 iOS/iPadOS 开源 AI EPUB 阅读器
+
+除桌面端外，GitHub 上出现了两个较成熟的 iOS 原生开源 AI EPUB 阅读器。
+
+### 9.4.1 功能对比
+
+| 维度 | vreader | Empty |
+|------|---------|-------|
+| **GitHub** | [lllyys/vreader](https://github.com/lllyys/vreader) | [DaviRain-Su/empty](https://github.com/DaviRain-Su/empty) |
+| **Stars** | ⭐17 | ⭐11 |
+| **iOS/iPadOS** | ✅ **iPhone + iPad** | ✅ **iPhone + iPad + visionOS** |
+| **macOS** | ❌ | ✅ 完整深读工作台 |
+| **技术栈** | Swift 6 + SwiftUI + SwiftData | Swift + SwiftUI |
+| **成熟度** | v3.59.18, 1,611 commits, 3 releases | v1.0.0, 98 commits, 1 release |
+| **格式** | **EPUB, AZW3/MOBI, PDF, TXT, Markdown** | EPUB, PDF |
+| **AI 模型** | OpenAI 兼容 API（BYOK） | **Apple Intelligence 端侧（默认）** + OpenAI/Anthropic BYOK |
+| **AI 对话** | ✅ 多轮对话，**每书多会话**，WebDAV 同步 | ✅ 「朱」阅读 Agent，自主调度工具 |
+| **翻译** | ✅ **双语对照逐行翻译** + 整书后台翻译，9 种语言 | ✅ 双语对照 + 内联翻译透镜 |
+| **TTS 朗读** | ✅ AVSpeechSynthesizer + HTTP 云 TTS | ✅ macOS 端 |
+| **防剧透** | ❌ | ✅ **所有 AI 功能只基于已读文本** |
+| **摘要** | ✅ 章节/全书/已读部分 | ✅ Chapter Recap + 已读进度标记 |
+| **批注** | ✅ 高亮、书签、笔记 | ✅ 精确 UTF-16 锚定高亮 + 笔记 |
+| **AI 记忆** | ✅ 跨对话持久化 | ✅ ReaderMemory 跨书主题发现 |
+| **词汇学习** | ❌ | ✅ Ebbinghaus 间隔复习闪卡 |
+| **全库搜索** | ✅ SQLite FTS5（含 CJK） | ❌ |
+| **库视图** | 网格/列表 + OPDS 目录 | Cover 书架 + 继续阅读卡片 |
+| **同步** | **WebDAV**（书籍+批注+AI 历史） | .empty-notes 包导出/导入 |
+| **本地优先** | ✅ | ✅ |
+| **开源协议** | MIT | MIT |
+
+### 9.4.2 安装方式 (iPad/iPhone)
+
+两个项目均**未提供 App Store / TestFlight / 预构建 IPA**，需通过 Xcode 源码构建部署：
+
+**vreader:**
+```bash
+git clone https://github.com/lllyys/vreader.git
+cd vreader
+xcodegen generate
+open vreader.xcodeproj
+```
+选择 iPad/iPhone 真机或模拟器 → `Cmd + R` 运行。
+
+**Empty:**
+```bash
+git clone https://github.com/DaviRain-Su/empty.git
+cd Empty
+open Empty.xcodeproj
+```
+选择 iPad/iPhone 模拟器 → `Cmd + R` 运行。
+
+> **注意**: 真机部署需要 Apple Developer 账号（免费账号也可，但每 7 天需重新签名）。如有 Mac 开发环境，推荐 **vreader**（功能最全面，支持格式多，有 WebDAV 同步）；如看重隐私和 Apple Intelligence 端侧推理，推荐 **Empty**（防剧透，间隔复习，知识图谱）。
+
+### 9.4.3 选择建议
+
+| 需求 | 推荐 |
+|------|------|
+| iOS 上功能最全的 AI 阅读器 | **vreader**（多格式、AI 对话、双语翻译、TTS、全库搜索、WebDAV 同步） |
+| 隐私优先 + 端侧 AI | **Empty**（Apple Intelligence 默认，BYOK 可选，防剧透设计） |
+| 想直接下载即用（无需 Xcode） | 两者均不满足；考虑 **Readest**（App Store 免费，但无 LLM 对话） |
+| 跨书知识管理 + 间隔复习 | **Empty**（知识图谱、闪卡、词汇） |
+| 格式支持最多 | **vreader**（EPUB, AZW3/MOBI, PDF, TXT, MD） |
+| 有 Mac 也在用 | **Empty**（macOS + iOS 统一体验） |
+
+---
+
+## 9.5 Apple Intelligence 端侧 AI 架构与限制
+
+### 9.5.1 什么是 Apple Intelligence
+
+Apple Intelligence 是 Apple 的个人智能系统，核心是 **Foundation Models framework**（`/System/Library/Frameworks/FoundationModels.framework`），提供端侧 ~3B 参数语言模型，专为 Apple Silicon 优化。
+
+| 维度 | 端侧模型 | 服务器模型 |
+|------|---------|-----------|
+| 参数量 | **~3B** | PT-MoE（并行轨道路由器专家混合） |
+| 量化 | **2-bit QAT**（量化感知训练） | 3.56-bit ASTC |
+| 内存优化 | KV-cache 共享（省 37.5%） | 同步开销降低 87.5% |
+| 上下文 | ~65K tokens | ~65K tokens |
+| 多模态 | 文本 + 图像（ViTDet-L 300M） | 文本 + 图像（ViT-g 1B） |
+| 运行位置 | **设备本地**（Apple Silicon） | **Private Cloud Compute**（Apple 隐私云） |
+| 开发者接口 | **FoundationModels 框架**（`@Generable` 约束解码） | 仅 Apple 系统功能使用 |
+
+### 9.5.2 Empty 如何调用端侧 AI
+
+Empty 通过 `FoundationModelsAIService.swift` 调用 Apple 端侧模型，核心链路：
+
+```
+FoundationModelsService.make()
+       ↓
+#if canImport(FoundationModels)    ← 编译时检查框架
+  FoundationModelsAIService()
+       ↓
+SystemLanguageModel.default        ← 检查端侧模型可用性
+  .isAvailable
+       ↓
+LanguageModelSession(instructions:) ← 创建会话
+       ↓
+session.respond(to: prompt)        ← 发起推理
+       ↓
+@Generable 约束解码                 ← 直接产出 Swift 类型
+```
+
+关键特性：
+- **免费、离线、隐私** — 不联网，不上传数据
+- **`@Generable` 宏** — Swift 类型约束解码，保证输出格式
+- **`LanguageModelSession`** — 每次请求新建会话，避免上下文泄露
+- **自动回退** — 端侧不可用时 fallback 到用户配置的 BYOK 云 API
+
+### 9.5.3 地区限制（重要）
+
+Apple Intelligence **不在中国大陆提供**。当系统语言/地区为 `zh_CN` 时：
+
+- 系统设置中无 Apple Intelligence 开关
+- `Assistant Enabled = 0`（Siri 禁用）
+- Empty 的 `FoundationModelsAIService.availability` 返回 `.unavailable`
+- 端侧 `~3B` 模型无法下载
+
+**解决方案**：在 Empty 中使用 BYOK 云 API（OpenAI/Anthropic/任意兼容端点）
+- 侧栏 **AI 状态** → 配置 API Key
+- 功能完整（翻译、摘要、伴读对话、词汇闪卡等）
+- Empty 自动 fallback 到云端
+
+### 9.5.4 macOS 使用指南
+
+Empty 在 macOS 上提供完整四面板深读工作台：
+
+1. **开启图书**：打开 Empty → import EPUB/PDF
+2. **呼出伴读**：阅读视图顶部工具栏 → Picker 选择 **「导读」**（companion 模式）
+3. **划词 AI**：选中文字 → 弹出工具栏（解释/翻译/总结）
+4. **AI 配置**：侧栏 **AI 状态** → 选择 on-device（仅限支持地区）或配置云 API Key
+
+| 需求 | 配置方式 |
+|------|---------|
+| 中国大陆用户 | BYOK 云 API（OpenAI/Anthropic/兼容端点） |
+| 海外用户 | Apple Intelligence 端侧（默认免费离线）或 BYOK 云 API |
 
 
 ## 11. 总结与推荐
@@ -692,6 +833,8 @@ ls /Applications/marginalia.app
 - **KindleFetch** (`justrals/KindleFetch`) ⭐286 — Kindle 设备 CLI 下载
 - **cal-annas** (`a-peirogon/cal-annas`) ⭐10 — Calibre 插件（最近推送 2026-06-21）
 - **bookdl** (`billmal071/bookdl`) ⭐15 — Go 语言 CLI 工具
+- **vreader** (`lllyys/vreader`) ⭐17 — iOS/iPadOS AI EPUB 阅读器（AI 对话、双语翻译、TTS、WebDAV）
+- **Empty** (`DaviRain-Su/empty`) ⭐11 — macOS + iOS/iPadOS 防剧透 AI 伴读（端侧 AI / BYOK）
 
 ## 10. 实际下载验证
 
