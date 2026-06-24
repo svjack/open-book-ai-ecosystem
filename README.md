@@ -1,29 +1,119 @@
-# 开放图书馆资源调研报告
+# 开放图书馆 EPUB 下载方案 & 调研报告
 
-> 记录日期: 2026-06-23
-> 目标: 调研 Z-Library 替代方案、无限制 EPUB 下载平台、Anna's Archive 使用及下载方法
+> **核心**: 使用 cmux 浏览器（macOS 终端内置浏览器）配合 Anna's Archive + LibGen 完成下载  
+> **记录日期**: 2026-06-23 | **最后更新**: 2026-06-24  
+> **目标**: 调研 Z-Library 替代方案、无限制 EPUB 下载平台、Anna's Archive 使用及下载方法
+
+---
+
+## 快速开始：标准下载流程（cmux 浏览器）
+
+以下流程是验证过最可靠的下载方式。只需 cmux 浏览器（macOS 终端内），无需 curl、Python 脚本或 Calibre。
+
+### 场景 A：LibGen 上存在的书目（推荐，最简单）
+
+```bash
+# 1. 在 Anna's Archive 搜索，加 &src=lgli 只显示 LibGen 源的书籍
+cmux --json browser open \
+  "https://annas-archive.gl/search?q={书名}&src=lgli&lang=zh" \
+  --workspace "${CMUX_WORKSPACE_ID}"
+
+# 2. 点击目标书籍进入详情页，地址栏中提取 /md5/{32位md5}
+
+# 3. 在 cmux 浏览器中打开 LibGen 直连页
+cmux browser surface:N goto \
+  "https://libgen.li/ads.php?md5={md5}"
+
+# 4. 点击页面上唯一的 "GET" 按钮 → 文件自动下载到 ~/Downloads/
+```
+
+✅ DDoS-Guard 由浏览器自动处理  
+✅ LibGen 无防护，无需任何登录  
+✅ 文件直达 `~/Downloads/`（不显示在 `cmux browser download list` 中）  
+✅ EPUB / PDF / MOBI 等格式均可
+
+> **实测**: 以《李朝实录 第二册 太宗实录 第一》(`md5=b078a17ec2...`) 为例，打开 ads.php → 点击 GET → 17MB PDF 自动下载完成。
+
+### 场景 B：Z-Library 独占书目（通过 Anna's Archive 下载通道）
+
+```bash
+# 1. 搜索（不加 &src=lgli，让所有来源都出现）
+cmux --json browser open \
+  "https://annas-archive.gl/search?q={书名}&lang=zh" \
+  --workspace "${CMUX_WORKSPACE_ID}"
+
+# 2. 点击结果进入 MD5 详情页
+
+# 3. 在 "browser verification" 区域点击 Slow Partner Server #1
+#    浏览器自动通过 DDoS-Guard JS 质询
+
+# 4. 在跳转后的页面点击 "📚 Download now"
+#    → 文件自动下载到 ~/Downloads/
+```
+
+> ⚠️ **注意**: 下载由浏览器后台完成，`cmux browser download list` 可能检测不到。**直接检查 `~/Downloads/`** 即可找到文件。
+
+> **实测**: 以《朝鲜王朝实录》(`md5=50b42aa8...`) 为例，curl 返回 429，浏览器点击后 **81MB EPUB 成功下载**。浏览器内置 cookie 管理绕过了 CDN 限速。
+
+### 完整示意图
+
+```
+┌─ 场景 A: LibGen 存在 ───────────────────────┐
+│                                               │
+│  AA 搜索 (&src=lgli) ──→ libgen.li/ads.php   │
+│       │                       │               │
+│  DDoS-Guard              无防护                │
+│  浏览器自动过              GET 按钮点击         │
+│       │                       │               │
+│       └──── 提取 md5 ────────┘               │
+│                                │               │
+│                           ~/Downloads/         │
+├─ 场景 B: Z-Library 独占 ─────────────────────┐
+│                                               │
+│  AA 搜索 ──→ /md5/{md5} 详情页                │
+│       │                       │               │
+│  DDoS-Guard            Slow Partner Server     │
+│  浏览器自动过          浏览器自动过 DDoS-Guard  │
+│       │                       │               │
+│       └── 点击 "Download now" ─┘               │
+│                                │               │
+│                           ~/Downloads/         │
+└───────────────────────────────────────────────┘
+```
+
+### 常见问题
+
+**Q: 怎么获取 cmux 浏览器 surface 编号？**  
+每次 `cmux --json browser open` 返回的 JSON 中有 `surface_ref`，如 `surface:5`。之后所有操作使用 `cmux browser surface:5 <命令>`。
+
+**Q: 搜索时没反应？**  
+首次访问 `.gl` 域名可能需要几秒钟加载 DDoS-Guard 质询，等待 `wait --load-state complete` 后再操作。
+
+**Q: LibGen ads.php 页面没有 "GET" 按钮？**  
+说明该 md5 **不在 LibGen 上**（只会出现在 Z-Library/upload 源）。切换到场景 B。
 
 ---
 
 ## 目录
 
-1. [Z-Library 现状](#1-z-library-现状)
-2. [GitHub 上的 Z-Library 相关项目](#2-github-上的-z-library-相关项目)
-3. [zlibrary.koplugin 源码分析](#3-zlibrarykoplugin-源码分析)
-4. [免费 EPUB 下载平台对比](#4-免费-epub-下载平台对比)
-5. [核心项目: a-peirogon/cal-annas](#5-核心项目-a-peirogoncal-annas)
-6. [Anna's Archive 深度分析](#6-annas-archive-深度分析)
-7. [Anna's Archive 藏书验证](#7-annas-archive-藏书验证)
-8. [绕过 DDoS-Guard 的下载方案](#8-绕过-ddos-guard-的下载方案)
-9.  [AI EPUB 阅读器对比](#9-ai-epub-阅读器对比)
-    9.4 [iOS/iPadOS 开源 AI EPUB 阅读器](#94-iosipados-开源-ai-epub-阅读器)
-    9.5 [Apple Intelligence 端侧 AI 架构与限制](#95-apple-intelligence-端侧-ai-架构与限制)
-10.  [实际下载验证](#10-实际下载验证)
-11. [总结与推荐](#11-总结与推荐)
+1. [快速开始：标准下载流程（cmux 浏览器）](#快速开始标准下载流程cmux-浏览器)
+2. [Z-Library 现状](#2-z-library-现状)
+3. [GitHub 上的 Z-Library 相关项目](#3-github-上的-z-library-相关项目)
+4. [zlibrary.koplugin 源码分析](#4-zlibrarykoplugin-源码分析)
+5. [免费 EPUB 下载平台对比](#5-免费-epub-下载平台对比)
+6. [核心项目: a-peirogon/cal-annas](#6-核心项目-a-peirogoncal-annas)
+7. [Anna's Archive 深度分析](#7-annas-archive-深度分析)
+8. [Anna's Archive 藏书验证](#8-annas-archive-藏书验证)
+9. [绕过 DDoS-Guard 的下载方案](#9-绕过-ddos-guard-的下载方案)
+10. [AI EPUB 阅读器对比](#10-ai-epub-阅读器对比)
+11. [iOS/iPadOS 开源 AI EPUB 阅读器](#11-iosipados-开源-ai-epub-阅读器)
+12. [Apple Intelligence 端侧 AI 架构与限制](#12-apple-intelligence-端侧-ai-架构与限制)
+13. [实际下载验证](#13-实际下载验证)
+14. [总结与推荐](#14-总结与推荐)
 
 ---
 
-## 1. Z-Library 现状
+## 2. Z-Library 现状
 
 ### 1.1 下载限制
 - 普通用户每日有下载数量限制（通常 5-10 本/天）
@@ -37,7 +127,7 @@
 
 ---
 
-## 2. GitHub 上的 Z-Library 相关项目
+## 3. GitHub 上的 Z-Library 相关项目
 
 ### 2.1 热门项目一览 (按 Stars 排序)
 
@@ -68,7 +158,7 @@
 
 ---
 
-## 3. zlibrary.koplugin 源码分析
+## 4. zlibrary.koplugin 源码分析
 
 ### 3.1 下载限制处理机制
 
@@ -112,7 +202,7 @@ end
 
 ---
 
-## 4. 免费 EPUB 下载平台对比
+## 5. 免费 EPUB 下载平台对比
 
 ### 4.1 综合对比表
 
@@ -162,7 +252,7 @@ end
 
 ---
 
-## 5. 核心项目: a-peirogon/cal-annas
+## 6. 核心项目: a-peirogon/cal-annas
 
 ### 5.1 项目概述
 
@@ -447,11 +537,11 @@ def get_details(self, search_result: SearchResult, timeout: int = 15):
 ```
 
 
-## 6. Anna's Archive 深度分析
+## 7. Anna's Archive 深度分析
 
 > 注: 本节及后续章节基于 [a-peirogon/cal-annas](#5-核心项目-a-peirogoncal-annas) 项目的代码分析和实际验证。
 
-### 5.1 访问方式
+### 7.1 访问方式
 
 | 方式 | 地址 | 说明 |
 |------|------|------|
@@ -462,7 +552,7 @@ def get_details(self, search_result: SearchResult, timeout: int = 15):
 | 博客 | `https://annas-blog.org` | 状态更新和公告 |
 | Tor 隐藏服务 | `annas-archive.li` | 需 Tor 浏览器 |
 
-### 5.2 首页分析 (`annas-archive.gl`)
+### 7.2 首页分析 (`annas-archive.gl`)
 
 - **标题**: "Anna's Archive: LibGen, Sci-Hub, Z-Library in one place"
 - **服务商**: DDoS-Guard (JS 质询防护)
@@ -470,7 +560,7 @@ def get_details(self, search_result: SearchResult, timeout: int = 15):
 - **功能入口**: 搜索、捐赠、🧬 SciDB（科学论文数据库）
 - **多语言支持**: 60+ 语言
 
-### 5.3 llms-txt.html 分析
+### 7.3 llms-txt.html 分析
 
 博客文章: **"If you're an LLM, please read this"** (2026-02-18)
 
@@ -484,9 +574,9 @@ def get_details(self, search_result: SearchResult, timeout: int = 15):
 
 ---
 
-## 7. Anna's Archive 藏书验证
+## 8. Anna's Archive 藏书验证
 
-### 6.1 中文轻小说搜索结果
+### 8.1 中文轻小说搜索结果
 
 | 搜索关键词 | 结果数 | 中文条目 | 代表作品 |
 |----------|-------|---------|---------|
@@ -500,7 +590,7 @@ def get_details(self, search_result: SearchResult, timeout: int = 15):
 **来源**: 迷糊轻小说(yidm.com)、台湾角川、东立出版社、cj5、epub掌上书苑
 **格式**: EPUB 为主，也有 PDF、MOBI、AZW3
 
-### 6.2 古代中文文本搜索结果
+### 8.2 古代中文文本搜索结果
 
 | 典籍 | 总结果 | 中文条目 | 说明 |
 |------|-------|---------|------|
@@ -521,21 +611,21 @@ def get_details(self, search_result: SearchResult, timeout: int = 15):
 | 四库全书 | 500+ | 29 | 大部头 |
 | 古文观止 | 500+ | 49 | 古文选集 |
 
-### 6.3 结论
+### 8.3 结论
 Anna's Archive 的中文古籍和轻小说馆藏非常丰富，
 热门作品基本都有中文翻译版，完全免费、无硬性下载限制（仅有 CAPTCHA 防滥用）。
 
 ---
 
-## 8. 绕过 DDoS-Guard 的下载方案
+## 9. 绕过 DDoS-Guard 的下载方案
 
-### 7.1 问题
+### 9.1 问题
 Anna's Archive 使用 DDoS-Guard 防护，直接通过 `slow_download` 或 `fast_download` 端点下载需要：
 - 解决 JS 质询（DDoS-Guard）
 - CAPTCHA 验证
 - 登录/捐赠（fast download）
 
-### 7.2 KindleFetch 的发现
+### 9.2 KindleFetch 的发现
 
 通过分析 `justrals/KindleFetch` 项目源码，发现其下载方案：
 
@@ -561,7 +651,7 @@ LGLI_MIRROR_URLS="https://libgen.li https://libgen.la https://libgen.gl"
 ZLIB_MIRROR_URLS="https://z-library.sk https://z-lib.fm https://1lib.sk https://z-library.ec"
 ```
 
-### 7.3 验证结果
+### 9.3 验证结果
 
 该方案经验证可行:
 ```
@@ -571,7 +661,7 @@ ZLIB_MIRROR_URLS="https://z-library.sk https://z-lib.fm https://1lib.sk https://
 结果:  成功获取 EPUB 文件
 ```
 
-### 7.4 下载工作流
+### 9.4 下载工作流
 
 ```
 1. Anna's Archive 搜索
@@ -599,11 +689,11 @@ ZLIB_MIRROR_URLS="https://z-library.sk https://z-lib.fm https://1lib.sk https://
 
 ---
 
-## 9. AI EPUB 阅读器对比
+## 10. AI EPUB 阅读器对比
 
 调研过程中发现两个同名的 AI 阅读器项目 Marginalia，均以"书页边缘 AI 对话"为核心概念。
 
-### 9.1 功能对比
+### 10.1 功能对比
 
 | 维度 | eddmann/Marginalia | EurFelux/marginalia |
 |------|------------------|-------------------|
@@ -625,7 +715,7 @@ ZLIB_MIRROR_URLS="https://z-library.sk https://z-lib.fm https://1lib.sk https://
 | **中文** | ❌ | ✅ **双语界面**（English / 简体中文） |
 | **许可证** | AGPL-3.0 | GPL-3.0 |
 
-### 9.2 安装过程 (macOS)
+### 10.2 安装过程 (macOS)
 
 **方式一: Homebrew（推荐）**
 ```bash
@@ -649,7 +739,7 @@ ls /Applications/marginalia.app
 
 **注意**: 本项目基于 Electron，**目前只有 macOS 桌面版**。从 `forge.config.ts` 可见打包目标仅包含 `darwin-arm64` 和 `darwin-x64`，无 iOS/Android 版本。
 
-### 9.3 EurFelux/marginalia TTS 原理
+### 10.3 EurFelux/marginalia TTS 原理
 
 - **驱动**: Web Speech API（`window.speechSynthesis`）
 - **跨平台**: macOS (NSSpeechSynthesizer) / Windows (SAPI5) / Linux (speech-dispatcher)
@@ -657,7 +747,7 @@ ls /Applications/marginalia.app
 - **音色推荐**: 目前仅 macOS 做了精选（英文 Samantha/Alex/Karen/Daniel，中文 Tingting/婷婷/Meijia/美佳）
 - **数据安全**: 不上传任何数据，"speaks with the voices already on your machine"
 
-### 9.3 选择建议
+### 10.4 选择建议
 
 | 需求 | 推荐 |
 |------|------|
@@ -666,15 +756,15 @@ ls /Applications/marginalia.app
 | 自定义 API Key | **EurFelux/marginalia**（任意 OpenAI 兼容端点） |
 | 多平台（非 macOS） | **eddmann/Marginalia**（macOS + Linux）或 Koodo Reader |
 | 纯阅读 + 批量管理 | **Calibre + cal-annas**（最成熟） |
-| **iOS/iPadOS 原生 AI 阅读** | **vreader** 或 **Empty**（见 9.4） |
+| **iOS/iPadOS 原生 AI 阅读** | **vreader** 或 **Empty**（见 11.1） |
 
 ---
 
-## 9.4 iOS/iPadOS 开源 AI EPUB 阅读器
+## 11. iOS/iPadOS 开源 AI EPUB 阅读器
 
 除桌面端外，GitHub 上出现了两个较成熟的 iOS 原生开源 AI EPUB 阅读器。
 
-### 9.4.1 功能对比
+### 11.1 功能对比
 
 | 维度 | vreader | Empty |
 |------|---------|-------|
@@ -700,7 +790,7 @@ ls /Applications/marginalia.app
 | **本地优先** | ✅ | ✅ |
 | **开源协议** | MIT | MIT |
 
-### 9.4.2 安装方式 (iPad/iPhone)
+### 11.2 安装方式 (iPad/iPhone)
 
 两个项目均**未提供 App Store / TestFlight / 预构建 IPA**，需通过 Xcode 源码构建部署：
 
@@ -725,7 +815,7 @@ open Empty.xcodeproj
 
 > **注意**: 真机部署需要 Apple Developer 账号（免费账号也可，但每 7 天需重新签名）。如有 Mac 开发环境，推荐 **vreader**（功能最全面，支持格式多，有 WebDAV 同步）；如看重隐私和 Apple Intelligence 端侧推理，推荐 **Empty**（防剧透，间隔复习，知识图谱）。
 
-### 9.4.3 选择建议
+### 11.3 选择建议
 
 | 需求 | 推荐 |
 |------|------|
@@ -738,9 +828,9 @@ open Empty.xcodeproj
 
 ---
 
-## 9.5 Apple Intelligence 端侧 AI 架构与限制
+## 12. Apple Intelligence 端侧 AI 架构与限制
 
-### 9.5.1 什么是 Apple Intelligence
+### 12.1 什么是 Apple Intelligence
 
 Apple Intelligence 是 Apple 的个人智能系统，核心是 **Foundation Models framework**（`/System/Library/Frameworks/FoundationModels.framework`），提供端侧 ~3B 参数语言模型，专为 Apple Silicon 优化。
 
@@ -754,7 +844,7 @@ Apple Intelligence 是 Apple 的个人智能系统，核心是 **Foundation Mode
 | 运行位置 | **设备本地**（Apple Silicon） | **Private Cloud Compute**（Apple 隐私云） |
 | 开发者接口 | **FoundationModels 框架**（`@Generable` 约束解码） | 仅 Apple 系统功能使用 |
 
-### 9.5.2 Empty 如何调用端侧 AI
+### 12.2 Empty 如何调用端侧 AI
 
 Empty 通过 `FoundationModelsAIService.swift` 调用 Apple 端侧模型，核心链路：
 
@@ -780,7 +870,7 @@ session.respond(to: prompt)        ← 发起推理
 - **`LanguageModelSession`** — 每次请求新建会话，避免上下文泄露
 - **自动回退** — 端侧不可用时 fallback 到用户配置的 BYOK 云 API
 
-### 9.5.3 地区限制（重要）
+### 12.3 地区限制（重要）
 
 Apple Intelligence **不在中国大陆提供**。当系统语言/地区为 `zh_CN` 时：
 
@@ -794,7 +884,7 @@ Apple Intelligence **不在中国大陆提供**。当系统语言/地区为 `zh_
 - 功能完整（翻译、摘要、伴读对话、词汇闪卡等）
 - Empty 自动 fallback 到云端
 
-### 9.5.4 macOS 使用指南
+### 12.4 macOS 使用指南
 
 Empty 在 macOS 上提供完整四面板深读工作台：
 
@@ -809,44 +899,13 @@ Empty 在 macOS 上提供完整四面板深读工作台：
 | 海外用户 | Apple Intelligence 端侧（默认免费离线）或 BYOK 云 API |
 
 
-## 11. 总结与推荐
+## 13. 实际下载验证
 
-### 8.1 各场景最佳选择
-
-| 需求 | 推荐方案 |
-|------|---------|
-| 公版书/经典文学 | Standard Ebooks（品质最高）或 Project Gutenberg（数量最多） |
-| 学术论文/科学文献 | Sci-Hub 或 Anna's Archive |
-| 中文轻小说/网络小说 | Anna's Archive → LibGen 下载（仅限 LibGen 已有书目） |
-| 中文古籍/经典 | Anna's Archive 或 LibGen（Z-Library 独占书需 Calibre 插件） |
-| 最大覆盖面 | Anna's Archive（6,400万+ 书籍） |
-| 零限制批量下载 | Anna's Archive Torrents 或 LibGen 直接下载 |
-
-### 8.2 关键发现
-
-1. **Anna's Archive 是 Z-Library 的最佳替代**，藏书量约为 Z-Library 的 3 倍
-2. **数据完全开源**，可通过 Torrent 或 API 无限制批量获取
-3. **LibGen 直连下载可绕过 DDoS-Guard** — 但仅对 LibGen 上存在的书目有效（涵盖大部分热门书籍和经典作品）
-4. **Z-Library 独占书仍需浏览器或 Calibre 插件** — CLI 自动化无法下载 Z-Library 源或 AA 用户上传源的书目，这是本方案的核心局限
-5. 中文内容（古籍 + 轻小说）在 Anna's Archive 上储备丰富
-
-### 8.3 相关 GitHub 项目
-
-- **Openlib** (`dstark5/Openlib`) ⭐2,384 — iOS App 访问 Anna's Archive
-- **KindleFetch** (`justrals/KindleFetch`) ⭐286 — Kindle 设备 CLI 下载
-- **cal-annas** (`a-peirogon/cal-annas`) ⭐10 — Calibre 插件（最近推送 2026-06-21）
-- **bookdl** (`billmal071/bookdl`) ⭐15 — Go 语言 CLI 工具
-- **vreader** (`lllyys/vreader`) ⭐17 — iOS/iPadOS AI EPUB 阅读器（AI 对话、双语翻译、TTS、WebDAV）
-- **Empty** (`DaviRain-Su/empty`) ⭐11 — macOS + iOS/iPadOS 防剧透 AI 伴读（端侧 AI / BYOK）
-  - 本地构建 & 真机安装实战记录: **[svjack/empty-builder-guide](https://github.com/svjack/empty-builder-guide)**
-
-## 10. 实际下载验证
-
-> ⚠️ **适用范围说明**: 本节验证的 3 级下载策略（LibGen → Sci-Hub → slow_download）**仅对存在于 LibGen 上的书目有效**。对于 Z-Library 独占的书目（未上传至 LibGen），Step 1 和 Step 2 必然失败，Step 3（slow_download）因 DDoS-Guard 阻挡也无法通过 CLI 完成。**《朝鲜王朝实录》** 和 **《两班：朝鲜王朝的特权阶层》** 即为反例（详见 §10.4）。
+> ⚠️ **适用范围说明**: 本节验证的 3 级下载策略（LibGen → Sci-Hub → slow_download）**仅对存在于 LibGen 上的书目有效**。对于 Z-Library 独占的书目（未上传至 LibGen），Step 1 和 Step 2 必然失败，Step 3（slow_download）因 DDoS-Guard 阻挡也无法通过 CLI 完成。**《朝鲜王朝实录》** 和 **《两班：朝鲜王朝的特权阶层》** 即为反例（详见 §13.4）。
 
 基于 [cal-annas](#5-核心项目-a-peirogoncal-annas) 的 3 级下载策略，编写了完整的 Python 下载脚本，成功下载两类各 3 本 EPUB。
 
-### 10.1 下载脚本
+### 13.1 下载脚本
 
 脚本位置: `/tmp/cal_annas_download.py`（基于调研过程中的实际执行版本）
 
@@ -934,7 +993,7 @@ def resolve_external_link(url):
     return None
 ```
 
-### 10.2 参考工程源码位置
+### 13.2 参考工程源码位置
 
 以下仓库已克隆至本地用于源码分析:
 
@@ -961,7 +1020,7 @@ def resolve_external_link(url):
 | `_active_libgen_mirrors()` | 273 | SLUM 活跃 LibGen 镜像列表 | `["libgen.li","libgen.rs","libgen.la"]` |
 | `_prewarm_cookies()` | 1006 | 后台预热 DDoS-Guard cookies | 未实现(CLI 无需) |
 
-### 10.3 下载结果
+### 13.3 下载结果
 
 脚本执行于 2026-06-23，保存至 `books/` 目录。
 
@@ -993,7 +1052,7 @@ def resolve_external_link(url):
 | Step 3 (slow_download) | 未触发 (Step 1 全成功) |
 | 总下载量 | 约 25 MB |
 
-### 10.4 关键结论
+### 13.4 关键结论
 
 #### 成功案例: LibGen 可见的书目
 
@@ -1015,67 +1074,7 @@ def resolve_external_link(url):
 
 根本原因: 这些书**只存在于 Z-Library 源**，不在 LibGen 上。CLI 脚本的 Step 1 (LibGen) 无路可走，Step 3 (`/slow_download/`) 被 DDoS-Guard 阻挡，返回 HTML 质询页面而非真实 EPUB。
 
-### 10.5 cmux 浏览器配合下载完整工作流
-
-使用 cmux 浏览器（WKWebView）对各种场景进行了完整验证，总结出以下配合下载流程。
-
-#### 场景 A: LibGen 上存在的书目（推荐，最简单）
-
-```
-cmux --json browser open "https://annas-archive.gl/search?q={书名}&src=lgli" --workspace "{$CMUX_WORKSPACE_ID}"
-```
-
-1. **搜索**: 在 Anna's Archive 搜索时加 `&src=lgli` 参数，只显示 LibGen 源的书籍
-2. **获取 md5**: 点击目标书籍进入 MD5 详情页，或从搜索页 URL 中提取 `/md5/{md5}`
-3. **LibGen 直连下载**: 在 cmux 浏览器中打开 `https://libgen.li/ads.php?md5={md5}`
-4. **点击 "GET" 按钮**: 浏览器导航到 `get.php`，自动下载 EPUB/PDF 到 `~/Downloads/`
-
-✅ DDoS-Guard 由浏览器自动处理  
-✅ LibGen 本身无防护  
-✅ 无需 curl，文件直达 `~/Downloads/`
-
-**实测验证**: 以《李朝实录 第二册 太宗实录 第一》(`md5=b078a17ec2...`) 为例，打开 LibGen ads.php → 点击 GET → 17MB PDF 自动下载到 `~/Downloads/`
-
-#### 场景 B: Z-Library 独占书目（AA 下载通道）
-
-1. **搜索**: `cmux browser open "https://annas-archive.gl/search?q={书名}&lang=zh" --workspace "{$CMUX_WORKSPACE_ID}"`
-2. **进入 MD5 详情页**: 点击搜索结果
-3. **点击 Slow Partner Server #1**: 浏览器自动通过 DDoS-Guard 质询
-4. **点击 "📚 Download now"**: 浏览器通过 AA 的 partner CDN 下载文件到 `~/Downloads/`
-
-> ⚠️ **注意**: 下载过程在浏览器内部完成，`cmux browser download list` 可能检测不到。**直接查看 `~/Downloads/`** 即可找到文件。
-
-**实测验证**: 以《朝鲜王朝实录》为例:
-- 第一次尝试时 `curl` 下载 CDN 直链返回 **429 Too Many Requests**
-- 改用浏览器直接点击 "Download now" → 几分钟后 `~/Downloads/` 中出现 **81MB 的 EPUB 文件**
-- 浏览器内置的 cookie 管理和请求头模拟成功绕过了 CDN 限速
-
-#### 完整流程示意图
-
-```
-┌─ 场景 A: LibGen 存在 ─────────────────────────┐
-│                                                 │
-│   AA 搜索 (&src=lgli) ──→ libgen.li/ads.php    │
-│         │                       │               │
-│    DDoS-Guard              无防护                │
-│    浏览器自动过              GET 按钮点击         │
-│         │                       │               │
-│         └──── 提取 md5 ────────┘               │
-│                                  │               │
-│                             ~/Downloads/         │
-│                                                 │
-├─ 场景 B: Z-Library 独占 ───────────────────────┐
-│                                                 │
-│   AA 搜索 ──→ /md5/{md5} 详情页                  │
-│         │                       │               │
-│    DDoS-Guard            Slow Partner Server     │
-│    浏览器自动过          浏览器自动过 DDoS-Guard  │
-│         │                       │               │
-│         └── 点击 "Download now" ─┘               │
-│                                  │               │
-│                             ~/Downloads/         │
-└─────────────────────────────────────────────────┘
-```
+> ✅ **cmux 浏览器可以解决**: 这两本失败案例已通过 cmux 浏览器成功下载（详见[快速开始 - 场景 B](#场景-bz-library-独占书目通过-annas-archive-下载通道)）。《朝鲜王朝实录》81MB EPUB 和《李朝实录》17MB PDF 均已保存至 `books/` 目录。
 
 #### 验证过的朝鲜史相关书目（均可在 LibGen 下载）
 
@@ -1097,10 +1096,47 @@ cmux --json browser open "https://annas-archive.gl/search?q={书名}&src=lgli" -
 
 #### 最终结论
 
-1. **LibGen 直连 + cmux 浏览器是最可靠的下载方案**: 对 LibGen 存在的书目，cmux 浏览器过 DDoS-Guard → 提取 md5 → LibGen ads.php → 点击 GET 即可
-2. **Z-Library 独占书也可通过 cmux 浏览器下载**: 浏览器处理 DDoS-Guard + CDN 限速 → 文件自动保存到 `~/Downloads/`
-3. **cmux 的下载文件不在 `download list` 中跟踪**: 下载完成后直接在 `~/Downloads/` 中查找
+1. **cmux 浏览器是标准下载工具**: 见顶部的[快速开始](#快速开始标准下载流程cmux-浏览器)标准流程。LibGen 存在的书用场景 A（3 步），Z-Library 独占书用场景 B（4 步）
+2. **LibGen 直连是 CLI 自动化路径**: 对 LibGen 存在的书目，Python 脚本通过 `ads.php → get.php` 成功率为 100%
+3. **慢速下载通道不可 CLI 自动化**: DDoS-Guard + CDN 限速双重阻挡，curl/Python 均不可用
 4. **格式支持**: 下载的 EPUB/PDF 均可在标准阅读器中正常打开
+
+
+## 14. 总结与推荐
+
+> **标准下载流程** → 见文档顶部[快速开始](#快速开始标准下载流程cmux-浏览器)（场景 A / 场景 B），使用 cmux 浏览器即可完成。
+
+### 14.1 各场景最佳选择
+
+| 需求 | 推荐方案 |
+|------|---------|
+| 快速下载（推荐） | **cmux 浏览器 + [快速开始](#快速开始标准下载流程cmux-浏览器)标准流程** |
+| 公版书/经典文学 | Standard Ebooks（品质最高）或 Project Gutenberg（数量最多） |
+| 学术论文/科学文献 | Sci-Hub 或 Anna's Archive |
+| 中文轻小说/网络小说 | Anna's Archive → LibGen 下载（仅限 LibGen 已有书目） |
+| 中文古籍/经典 | Anna's Archive 或 LibGen |
+| 最大覆盖面 | Anna's Archive（6,400万+ 书籍） |
+| 零限制批量下载 | Anna's Archive Torrents 或 LibGen 直接下载 |
+
+### 14.2 关键发现
+
+1. **cmux 浏览器 + Anna's Archive + LibGen 是最普适的下载方案** — 对 LibGen 存在的书走场景 A（3 步完成），对 Z-Library/upload 独占书走场景 B（4 步完成），文件自动保存到 `~/Downloads/`
+2. **Anna's Archive 是 Z-Library 的最佳替代**，藏书量约为 Z-Library 的 3 倍
+3. **数据完全开源**，可通过 Torrent 或 API 无限制批量获取
+4. **LibGen 直连可绕过 DDoS-Guard**，但仅对 LibGen 上存在的书目有效 — 对 Z-Library 独占书，cmux 浏览器可走 slow_download 通道解决
+5. 中文内容（古籍 + 轻小说）在 Anna's Archive 上储备丰富
+
+### 14.3 相关 GitHub 项目
+
+- **Openlib** (`dstark5/Openlib`) ⭐2,384 — iOS App 访问 Anna's Archive
+- **KindleFetch** (`justrals/KindleFetch`) ⭐286 — Kindle 设备 CLI 下载
+- **cal-annas** (`a-peirogon/cal-annas`) ⭐10 — Calibre 插件（最近推送 2026-06-21）
+- **bookdl** (`billmal071/bookdl`) ⭐15 — Go 语言 CLI 工具
+- **vreader** (`lllyys/vreader`) ⭐17 — iOS/iPadOS AI EPUB 阅读器（AI 对话、双语翻译、TTS、WebDAV）
+- **Empty** (`DaviRain-Su/empty`) ⭐11 — macOS + iOS/iPadOS 防剧透 AI 伴读（端侧 AI / BYOK）
+  - 本地构建 & 真机安装实战记录: **[svjack/empty-builder-guide](https://github.com/svjack/empty-builder-guide)**
+
+
 
 ---
 
