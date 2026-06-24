@@ -817,8 +817,8 @@ Empty 在 macOS 上提供完整四面板深读工作台：
 |------|---------|
 | 公版书/经典文学 | Standard Ebooks（品质最高）或 Project Gutenberg（数量最多） |
 | 学术论文/科学文献 | Sci-Hub 或 Anna's Archive |
-| 中文轻小说/网络小说 | Anna's Archive → LibGen 下载 |
-| 中文古籍/经典 | Anna's Archive 或 LibGen |
+| 中文轻小说/网络小说 | Anna's Archive → LibGen 下载（仅限 LibGen 已有书目） |
+| 中文古籍/经典 | Anna's Archive 或 LibGen（Z-Library 独占书需 Calibre 插件） |
 | 最大覆盖面 | Anna's Archive（6,400万+ 书籍） |
 | 零限制批量下载 | Anna's Archive Torrents 或 LibGen 直接下载 |
 
@@ -826,8 +826,9 @@ Empty 在 macOS 上提供完整四面板深读工作台：
 
 1. **Anna's Archive 是 Z-Library 的最佳替代**，藏书量约为 Z-Library 的 3 倍
 2. **数据完全开源**，可通过 Torrent 或 API 无限制批量获取
-3. **LibGen 直连下载**可绕过 Anna's Archive 的 DDoS-Guard 防护
-4. 中文内容（古籍 + 轻小说）在 Anna's Archive 上储备丰富
+3. **LibGen 直连下载可绕过 DDoS-Guard** — 但仅对 LibGen 上存在的书目有效（涵盖大部分热门书籍和经典作品）
+4. **Z-Library 独占书仍需浏览器或 Calibre 插件** — CLI 自动化无法下载 Z-Library 源或 AA 用户上传源的书目，这是本方案的核心局限
+5. 中文内容（古籍 + 轻小说）在 Anna's Archive 上储备丰富
 
 ### 8.3 相关 GitHub 项目
 
@@ -840,6 +841,8 @@ Empty 在 macOS 上提供完整四面板深读工作台：
   - 本地构建 & 真机安装实战记录: **[svjack/empty-builder-guide](https://github.com/svjack/empty-builder-guide)**
 
 ## 10. 实际下载验证
+
+> ⚠️ **适用范围说明**: 本节验证的 3 级下载策略（LibGen → Sci-Hub → slow_download）**仅对存在于 LibGen 上的书目有效**。对于 Z-Library 独占的书目（未上传至 LibGen），Step 1 和 Step 2 必然失败，Step 3（slow_download）因 DDoS-Guard 阻挡也无法通过 CLI 完成。**《朝鲜王朝实录》** 和 **《两班：朝鲜王朝的特权阶层》** 即为反例（详见 §10.4）。
 
 基于 [cal-annas](#5-核心项目-a-peirogoncal-annas) 的 3 级下载策略，编写了完整的 Python 下载脚本，成功下载两类各 3 本 EPUB。
 
@@ -992,10 +995,44 @@ def resolve_external_link(url):
 
 ### 10.4 关键结论
 
-1. **LibGen 直连成功率极高**: 6 本书全部通过 LibGen `ads.php → get.php` 路径成功下载
-2. **cal-annas 方案最优**: 3 级回退设计覆盖了大多数场景，但实际执行中 Step 1 已足够
-3. **slow_download 需登录**: DDoS-Guard 阻止了未认证的 CLI 访问，Calibre 插件因有 cookie 预热和浏览器环境可正常使用
-4. **格式支持**: 下载的 EPUB 均可在标准阅读器（Calibre、KOReader、Apple Books 等）中正常打开
+#### 成功案例: LibGen 可见的书目
+
+6 本书全部通过 LibGen `ads.php → get.php` 路径成功下载。验证了这些书在 Anna's Archive 上均标注了 `lgli` 来源:
+
+- **刀剑神域 Progressive 005** ✅ `159dd343` → LibGen 直连
+- **义妹生活 第六卷** ✅ `e09274cd` → LibGen 直连
+- **Re:从零开始** ✅ LibGen 直连
+- **许译中国经典诗文集** ✅ `ae0a5766` → LibGen 直连
+- **论语译注** ✅ `9209bfac` → LibGen 直连
+- **道德经** ✅ LibGen 直连
+
+#### 失败案例: Z-Library 独占书目
+
+| 书名 | MD5 | 来源标记 | LibGen 验证 | CLI 下载结果 |
+|------|-----|---------|-----------|------------|
+| 《朝鲜王朝实录》 | `50b42aa8...` | `zlib/` | ❌ `ads.php` 返回 "File not found" | ❌ 仅得到 898 字节的 DDoS-Guard HTML |
+| 《两班：朝鲜王朝的特权阶层》 | — | `upload` (AA 上传) | ❌ 不在 LibGen | ❌ 同上 |
+
+根本原因: 这些书**只存在于 Z-Library 源**，不在 LibGen 上。CLI 脚本的 Step 1 (LibGen) 无路可走，Step 3 (`/slow_download/`) 被 DDoS-Guard 阻挡，返回 HTML 质询页面而非真实 EPUB。
+
+#### cmux 浏览器实测补充
+
+使用 cmux 浏览器（WKWebView）重新尝试下载《朝鲜王朝实录》:
+- ✅ **DDoS-Guard 质询通过** — 浏览器成功拿到 `__ddg*` cookies，加载了搜索页和 MD5 详情页
+- ✅ **Slow Partner Server 交互成功** — 首次点击 Slow Partner Server #1，页面显示 "📚 Download now" 并暴露了 CDN 直链
+- ❌ **CDN 层限速** — 直接访问 CDN 直链（`wbsg8v.xyz`）返回 **429 Too Many Requests**，再重试时降级为 "become a member"
+- ❌ **Z-Library 外链不可用** — `z-lib.gd` 同样有防护，页面卡死
+
+**结论**: 即便是 cmux 浏览器，也只能解决 DDoS-Guard 这一层防护。Z-Library 独占书还需要面对 CDN 速率限制和 Z-Library 自身的防护墙。稳定下载仍需使用 Calibre + cal-annas 插件（cookie 预热 + 浏览器级头部模拟）或捐赠成为会员。
+
+#### 最终结论
+
+1. **LibGen 直连是唯一可靠的 CLI 下载路径**: 6 本书全部通过 LibGen `ads.php → get.php` 成功，成功率 100%
+2. **cal-annas 方案最优前提: 书在 LibGen 上**: 3 级回退设计对 LibGen 存在的书几乎不需要回退
+3. **slow_download 对 CLI 不可用**: DDoS-Guard + CDN 限速双重阻挡
+4. **Z-Library 独占/AA 上传书需浏览器或 Calibre 插件**: CLI 自动化无法绕过
+5. **cmux 浏览器可过 DDoS-Guard 但无法突破 CDN 限速**: 可作为辅助验证工具，但不是稳定下载方案
+6. **格式支持**: 下载的 EPUB 均可在标准阅读器中正常打开
 
 ---
 
