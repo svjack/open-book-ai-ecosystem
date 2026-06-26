@@ -1,0 +1,10 @@
+body {
+  font-family: "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
+  line-height: 1.8;
+  margin: 5%;
+  text-align: justify;
+  font-size: 1em;
+}
+h1 { text-align: center; font-size: 1.6em; margin: 2em 0; }
+h2 { text-align: center; font-size: 1.3em; margin: 1.5em 0; }
+p  { text-indent: 2em; margin: 0.5em 0; }

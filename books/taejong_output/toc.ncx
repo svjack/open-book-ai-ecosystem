@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+<head>
+<meta name="dtb:uid" content="urn:uuid:taejong-vernacular-2026"/>
+<meta name="dtb:depth" content="2"/>
+</head>
+<docTitle><text>太宗实录·白话文版</text></docTitle>
+<navMap>
+<navPoint id="h" playOrder="1">
+<navLabel><text>太宗恭定大王實錄（白话文）</text></navLabel>
+<content src="OEBPS/Text/Section0004.xhtml"/>
+<navPoint id="p0" playOrder="2"><navLabel><text>總序</text></navLabel><content src="OEBPS/Text/Section0024.xhtml"/></navPoint>
+<navPoint id="p1" playOrder="3"><navLabel><text>太宗 元年</text></navLabel><content src="OEBPS/Text/Section0025.xhtml"/></navPoint>
+<navPoint id="p2" playOrder="4"><navLabel><text>太宗 2年</text></navLabel><content src="OEBPS/Text/Section0026.xhtml"/></navPoint>
+<navPoint id="p3" playOrder="5"><navLabel><text>太宗 3年</text></navLabel><content src="OEBPS/Text/Section0027.xhtml"/></navPoint>
+<navPoint id="p4" playOrder="6"><navLabel><text>太宗 4年</text></navLabel><content src="OEBPS/Text/Section0028.xhtml"/></navPoint>
+<navPoint id="p5" playOrder="7"><navLabel><text>太宗 5年</text></navLabel><content src="OEBPS/Text/Section0029.xhtml"/></navPoint>
+<navPoint id="p6" playOrder="8"><navLabel><text>太宗 6年</text></navLabel><content src="OEBPS/Text/Section0030.xhtml"/></navPoint>
+<navPoint id="p7" playOrder="9"><navLabel><text>太宗 7年</text></navLabel><content src="OEBPS/Text/Section0031.xhtml"/></navPoint>
+<navPoint id="p8" playOrder="10"><navLabel><text>太宗 8年</text></navLabel><content src="OEBPS/Text/Section0032.xhtml"/></navPoint>
+<navPoint id="p9" playOrder="11"><navLabel><text>太宗 9年</text></navLabel><content src="OEBPS/Text/Section0033.xhtml"/></navPoint>
+<navPoint id="p10" playOrder="12"><navLabel><text>太宗 10年</text></navLabel><content src="OEBPS/Text/Section0034.xhtml"/></navPoint>
+<navPoint id="p11" playOrder="13"><navLabel><text>太宗 11年</text></navLabel><content src="OEBPS/Text/Section0035.xhtml"/></navPoint>
+<navPoint id="p12" playOrder="14"><navLabel><text>太宗 12年</text></navLabel><content src="OEBPS/Text/Section0036.xhtml"/></navPoint>
+<navPoint id="p13" playOrder="15"><navLabel><text>太宗 13年</text></navLabel><content src="OEBPS/Text/Section0037.xhtml"/></navPoint>
+<navPoint id="p14" playOrder="16"><navLabel><text>太宗 14年</text></navLabel><content src="OEBPS/Text/Section0038.xhtml"/></navPoint>
+<navPoint id="p15" playOrder="17"><navLabel><text>太宗 15年</text></navLabel><content src="OEBPS/Text/Section0039.xhtml"/></navPoint>
+<navPoint id="p16" playOrder="18"><navLabel><text>太宗 16年</text></navLabel><content src="OEBPS/Text/Section0040.xhtml"/></navPoint>
+<navPoint id="app" playOrder="19"><navLabel><text>附录</text></navLabel><content src="OEBPS/Text/Section0041.xhtml"/></navPoint>
+</navPoint>
+</navMap>
+</ncx>

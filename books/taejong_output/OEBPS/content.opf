@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="BookId">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+    <dc:title id="id">太宗实录·白话文版</dc:title>
+    <dc:creator id="id-1">春秋馆史官 原著 / AI 翻译</dc:creator>
+    <dc:identifier id="BookId">urn:uuid:taejong-vernacular-2026</dc:identifier>
+    <dc:language>zh-CN</dc:language>
+    <meta property="dcterms:modified">2026-06-26T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="titlepage" href="Text/titlepage.xhtml" media-type="application/xhtml+xml"/>
+    <item id="h" href="Text/Section0004.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p0" href="Text/Section0024.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p1" href="Text/Section0025.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p2" href="Text/Section0026.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p3" href="Text/Section0027.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p4" href="Text/Section0028.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p5" href="Text/Section0029.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p6" href="Text/Section0030.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p7" href="Text/Section0031.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p8" href="Text/Section0032.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p9" href="Text/Section0033.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p10" href="Text/Section0034.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p11" href="Text/Section0035.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p12" href="Text/Section0036.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p13" href="Text/Section0037.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p14" href="Text/Section0038.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p15" href="Text/Section0039.xhtml" media-type="application/xhtml+xml"/>
+    <item id="p16" href="Text/Section0040.xhtml" media-type="application/xhtml+xml"/>
+    <item id="app" href="Text/Section0041.xhtml" media-type="application/xhtml+xml"/>
+    <item id="css" href="Styles/Style0001.css" media-type="text/css"/>
+    <item id="cover" href="OEBPS/cover.jpg" media-type="image/jpeg" properties="cover-image"/>
+    <item id="nav" href="../nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+  </manifest>
+  <spine>
+    <itemref idref="titlepage"/>
+    <itemref idref="h"/>
+    <itemref idref="p0"/>
+    <itemref idref="p1"/>
+    <itemref idref="p2"/>
+    <itemref idref="p3"/>
+    <itemref idref="p4"/>
+    <itemref idref="p5"/>
+    <itemref idref="p6"/>
+    <itemref idref="p7"/>
+    <itemref idref="p8"/>
+    <itemref idref="p9"/>
+    <itemref idref="p10"/>
+    <itemref idref="p11"/>
+    <itemref idref="p12"/>
+    <itemref idref="p13"/>
+    <itemref idref="p14"/>
+    <itemref idref="p15"/>
+    <itemref idref="p16"/>
+    <itemref idref="app"/>
+  </spine>
+</package>
