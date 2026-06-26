@@ -1,5 +1,7 @@
 # 开放图书馆 EPUB 下载方案 & 调研报告
 
+> **本项目包含文言文→白话文翻译管线**：详见 [太宗实录翻译记录](TRANSLATION_NOTE.md) | [翻译工具](pipeline/README.md) | [白话文版 EPUB](books/太宗实录_白话文版.epub)
+
 > **核心**: 使用 cmux 浏览器（macOS 终端内置浏览器）配合 Anna's Archive + LibGen 完成下载  
 > **记录日期**: 2026-06-23 | **最后更新**: 2026-06-24  
 > **目标**: 调研 Z-Library 替代方案、无限制 EPUB 下载平台、Anna's Archive 使用及下载方法
